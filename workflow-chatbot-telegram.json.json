@@ -1,0 +1,389 @@
+{
+  "name": "thiago",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "id": "20dedcb5-0555-49ab-ae7d-d8063a09c647",
+      "name": "Telegram Trigger",
+      "webhookId": "9b92bb3f-7ec2-4cc1-9b66-c77789661428",
+      "credentials": {
+        "telegramApi": {
+          "id": "nsabHhgc1LztryAC",
+          "name": "Telegram thiago"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=q",
+              "value": "={{ $json.cidade }}"
+            },
+            {
+              "name": "=units",
+              "value": "metric"
+            },
+            {
+              "name": "lang",
+              "value": "pt_br"
+            },
+            {
+              "name": "appid",
+              "value": "={{ $vars }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [416, 0],
+      "id": "b106820b-6f47-4438-8a73-9d88203f4d16",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "sQbxk2qCr1wKqWFv",
+          "name": "OpenWeather"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "614780d8-1eaf-4b87-ac12-6bbb8f200d67",
+              "leftValue": "={{ $json.cod }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [624, 0],
+      "id": "af5df1f3-8828-4912-9687-2a1974ea1677",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Reescreva em pt-br os seguintes dados de clima: Cidade: {{ $json.city }}, Temp: {{ $json.temp }}°C, Condição: {{ $json['condição'] }}. Responda de forma natura, amigavel e direta. Mande esse emoji no começo da frase com base na {{ $json['condição'] }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [1024, -192],
+      "id": "a3e041cd-ccdc-4f34-b831-1686ccbdf1ef",
+      "name": "AI Agent",
+      "alwaysOutputData": false,
+      "retryOnFail": false,
+      "executeOnce": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Captura os dados que chegaram ao nó\nconst input = items[0].json;\n\n// 1. Verifica se o Gemini funcionou e retornou a 'message'\nif (input.output && input.output.includes('message')) {\n  try {\n    // Se o Gemini retornou o JSON como string, tentamos transformar em objeto\n    const geminiResponse = JSON.parse(input.output);\n    return { message: geminiResponse.message, ok: true };\n  } catch (e) {\n    // Se não for um JSON válido, mas tiver texto, usamos o texto puro\n    return { message: input.output, ok: true };\n  }\n}\n\n// 2. FALLBACK: Se o Gemini falhou ou não trouxe o formato esperado\n// Buscamos os dados direto do HTTP Request ou do Edit Fields anterior\nconst cidade = $input.first().json.city;\nconst temp = $input.first().json.temp;\nconst desc = $input.first().json['condição'];\n\nreturn {\n  output: `🌤️ A temperatura em ${cidade} é de ${temp}°C`\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1456, -96],
+      "id": "3337b2fc-86a8-45ea-a424-b6cf7eb7ac40",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [1024, -16],
+      "id": "e0ee1d93-c332-41d4-a06f-db5188fd2481",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "W6PJNSfovzWcnPoS",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "=❌ Cidade não encontrada. Use o formato Cidade, UF, BR (ex.: São Paulo, SP, BR).",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [768, 144],
+      "id": "30e133af-6e30-4f39-b4ba-0c6e6690683a",
+      "name": "erro_message",
+      "webhookId": "9342ca8b-1386-4ed6-bbf1-92802c549186",
+      "credentials": {
+        "telegramApi": {
+          "id": "nsabHhgc1LztryAC",
+          "name": "Telegram thiago"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de8ea83d-ad05-4ad5-aea2-a53c73886f45",
+              "name": "cidade",
+              "value": "={{ $json.message.text.trim().toLowerCase().normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\") }}",
+              "type": "string"
+            },
+            {
+              "id": "7ff49292-4720-484e-b054-ad5bc4092039",
+              "name": "chat.id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [208, 0],
+      "id": "6918dcea-3f0c-47e5-988b-8965e71cb8d2",
+      "name": "format"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f98c1c3d-241a-4dc2-98c3-7168a0679eba",
+              "name": "final_message",
+              "value": "=A temperatura em {{ $('HTTP Request').item.json.name }} é de {{ Math.round($json.main.temp) }}°C, com {{ $json.weather[0].description }}.",
+              "type": "string"
+            },
+            {
+              "id": "97a609bc-4fee-4e03-ac69-906116539963",
+              "name": "temp",
+              "value": "={{ Math.round($json.main.temp) }}",
+              "type": "string"
+            },
+            {
+              "id": "6f5f3614-e440-4587-a57a-ddae885dc171",
+              "name": "city",
+              "value": "={{ $('HTTP Request').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "60fc72e1-043c-48aa-b043-2c8c8e878455",
+              "name": "condição",
+              "value": "={{ $json.weather[0].description }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [816, -192],
+      "id": "ac9de0f7-c9ea-4217-b008-4dd6a267640b",
+      "name": "format_message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1824, -208],
+      "id": "64d0ea9a-bc44-476e-9f19-0ea0c9b5dba0",
+      "name": "sucess_message",
+      "webhookId": "5bbd87e5-165b-4040-88dc-872ebfd00455",
+      "credentials": {
+        "telegramApi": {
+          "id": "nsabHhgc1LztryAC",
+          "name": "Telegram thiago"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 322579488,
+          "message": {
+            "message_id": 3,
+            "from": {
+              "id": 5709178181,
+              "is_bot": false,
+              "first_name": "Thiago",
+              "last_name": "Luiz",
+              "language_code": "pt-br"
+            },
+            "chat": {
+              "id": 5709178181,
+              "first_name": "Thiago",
+              "last_name": "Luiz",
+              "type": "private"
+            },
+            "date": 1773588569,
+            "text": "   Curitiba   "
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "format_message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "erro_message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "sucess_message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "sucess_message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format_message": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f6c32d7d-e32d-4152-8f7f-af5e0d150096",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1553006824dfb8eaae79457c03455306d6f612152a9938b2b50cd6aebbafa68e"
+  },
+  "id": "s3yVs96ieHHH8ymw",
+  "tags": [
+    {
+      "updatedAt": "2026-03-01T17:12:44.091Z",
+      "createdAt": "2026-03-01T17:12:44.091Z",
+      "id": "qu9hA9daAVgjPp4v",
+      "name": "Thiago"
+    }
+  ]
+}
