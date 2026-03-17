@@ -160,7 +160,7 @@
             {
               "id": "de8ea83d-ad05-4ad5-aea2-a53c73886f45",
               "name": "cidade",
-              "value": "={{ $json.message.text.trim().toLowerCase().normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\") }}",
+              "value": "={{ /^[a-zA-ZÀ-ÿ\\s\\-]+,\\s*[a-zA-Z]{2}\\s*,\\s*BR$/i.test($json.message.text.trim()) ? $json.message.text.trim().toLowerCase().normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\") : \"invalid\" }}",
               "type": "string"
             },
             {
@@ -258,7 +258,7 @@
               "type": "private"
             },
             "date": 1773588569,
-            "text": "   Curitiba   "
+            "text": "Curitiba, PR, BR"
           }
         }
       }
@@ -372,7 +372,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "f6c32d7d-e32d-4152-8f7f-af5e0d150096",
+  "versionId": "1e0033b4-f66f-4f9e-b5cd-097caac5bcc1",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "1553006824dfb8eaae79457c03455306d6f612152a9938b2b50cd6aebbafa68e"
